@@ -5384,6 +5384,7 @@ export default function CollegeBaseballApp() {
                           </div>
                           <div style={{ overflowY: "auto", flex: 1, paddingBottom: 24 }}>
                             {sorted.map(g => {
+                              // eslint-disable-next-line no-unused-vars
                               const isMyTeam = myAbbrs.has(g.away.abbr) || myAbbrs.has(g.home.abbr);
                               const isBookmarked = !!favs[g.id];
                               return (
