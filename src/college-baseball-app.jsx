@@ -1283,7 +1283,9 @@ const leaders = [
   { name: "Enrique Bradfield", team: "Vanderbilt", stat: "36", label: "SB", pos: "OF" },
 ];
 
+// eslint-disable-next-line no-unused-vars
 // ESPN-style flat batter silhouette — load stance, bat raised
+// eslint-disable-next-line no-unused-vars
 const BatterSilhouette = ({ hand = "R", teamColor = "#CE1126" }) => {
   const isLeft = hand === "L";
   return (
@@ -2499,8 +2501,8 @@ const GameDetailScreen = ({ game, onClose, favs, toggleFav, onPlayerSelect, onTe
     setTimeout(() => setPlayToast(null), 5000);
   };
 
-  const awayTotal = awayScore;
-  const homeTotal = homeScore;
+  // const awayTotal = awayScore; // unused
+  // const homeTotal = homeScore; // unused
 
 
   return (
@@ -3653,7 +3655,7 @@ const TeamProfileScreen = ({ team, onClose, onPlayerSelect, onGameSelect, myTeam
   if (!team) return null;
   const tpTabs = ["Overview", "Roster", "Schedule", "Pitching", "Staff"];
 
-  const isFollowing = myTeams.some(t => t.abbr === team.abbr);
+  // const isFollowing = myTeams.some(t => t.abbr === team.abbr); // unused
 
   // ── Mock data shaped to match future API response ──
   const teamData = {
@@ -3975,6 +3977,7 @@ const TeamProfileScreen = ({ team, onClose, onPlayerSelect, onGameSelect, myTeam
 
 // ─── Multi View with drag-and-drop ───────────────────────────────────────────
 const MultiViewScreen = ({ liveGames, defaultOrder, myAbbrs, favs, toggleFav, onClose, onListView }) => {
+  // eslint-disable-next-line no-unused-vars
   const { useState: useS, useRef, useCallback } = { useState, useRef: window._useRef || (() => ({ current: null })), useCallback: window._useCallback || ((fn) => fn) };
 
   const [order, setOrder] = useState(defaultOrder);
@@ -3982,8 +3985,10 @@ const MultiViewScreen = ({ liveGames, defaultOrder, myAbbrs, favs, toggleFav, on
   const [overId, setOverId] = useState(null);
   const [ghostPos, setGhostPos] = useState(null);
   const [ghostSize, setGhostSize] = useState({ w: 0, h: 0 });
+  // eslint-disable-next-line no-unused-vars
   const dragOffset = { x: 0, y: 0 };
   const dragOffsetRef = { current: { x: 0, y: 0 } };
+  // eslint-disable-next-line no-unused-vars
   const pointerRef = { current: null };
 
   const gameMap = Object.fromEntries(liveGames.map(g => [g.id, g]));
@@ -4820,15 +4825,16 @@ export default function CollegeBaseballApp() {
 
   const goToPlayer = (name, id = null) => setSelectedPlayer({ name, id });
   const goToTeam = (name, abbr, color, bg) => setSelectedTeam({ name, abbr, color, bg });
-  const goToConference = (name) => setSelectedConference({ name });
+  // const goToConference = (name) => setSelectedConference({ name }); // unused
 
   // Re-wiring item #5: match my teams by abbr OR name so real API abbrs don't break sort
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const isMyTeamGame = useCallback((game) => {
     return myTeams.some(t =>
       t.abbr === game?.away?.abbr || t.abbr === game?.home?.abbr ||
       game?.away?.name?.includes(t.name) || game?.home?.name?.includes(t.name)
     );
-  }, []);
+  }, [myTeams]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Calendar state — starts at current month (April 2026)
   const [calYear, setCalYear] = useState(2026);
@@ -4884,7 +4890,7 @@ export default function CollegeBaseballApp() {
   const [showMultiView, setShowMultiView] = useState(false);
 
   // ── Re-wiring item #2: Polling state ──────────────────────────────────────
-  const [liveGameData, setLiveGameData] = useState({}); // keyed by game id
+  // const [liveGameData, setLiveGameData] = useState({}); // unused
   const [scheduleData, setScheduleData] = useState({}); // keyed by date string
   const [dataLoading, setDataLoading] = useState(false);
   const [dataError, setDataError] = useState(null);
@@ -4966,6 +4972,7 @@ export default function CollegeBaseballApp() {
   }, []);
 
   // Fetch live game detail and merge into liveStates
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const loadLiveGame = useCallback(async (gameId) => {
     const raw = await fetchLiveGameESPN(gameId);
     if (!raw) return;
@@ -5013,7 +5020,7 @@ export default function CollegeBaseballApp() {
         coverage: detectCoverage({ pitches: pitchData?.atBats?.flatMap(ab => ab.pitches ?? []) ?? [], plays: pbpData }),
       };
     });
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Helper to group plays by inning label
   function groupPlaysByInning(plays) {
