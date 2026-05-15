@@ -2245,8 +2245,60 @@ const GameDetailScreen = ({ game, onClose, favs, toggleFav, onPlayerSelect, onTe
   const [pitchAnim, setPitchAnim] = useState(false);
   const [lastPitch, setLastPitch] = useState(null);
   const [playToast, setPlayToast] = useState(null);
+  const [liveState, setLiveStateLocal] = useState(savedLiveState ?? null);
 
-  // Guard — if game or its teams are missing, don't render
+  // All useEffects must be before any early return
+  useEffect(() => {
+    if (!game || !game.away || !game.home || liveState) return;
+    const gcData0 = {
+      10: { pitcher: { name: "J. Wiley",   hand: "R", era: "2.98", pitches: 74 }, batter: { name: "P. Strother", hand: "R", avg: ".334", hr: 6,  rbi: 28 } },
+      1:  { pitcher: { name: "P. Skenes",  hand: "R", era: "1.69", pitches: 91 }, batter: { name: "D. Crews",    hand: "R", avg: ".402", hr: 12, rbi: 42 } },
+      2:  { pitcher: { name: "B. Hitt",    hand: "L", era: "3.41", pitches: 68 }, batter: { name: "C. Enright",  hand: "R", avg: ".291", hr: 4,  rbi: 19 } },
+      default: { pitcher: { name: "S. Miller", hand: "R", era: "3.15", pitches: 82 }, batter: { name: "J. Davis", hand: "R", avg: ".305", hr: 7, rbi: 24 } },
+    };
+    const initGC = gcData0[game.id] || gcData0.default;
+    const batterPools = {
+      10: [{ name: "P. Strother", hand: "R", avg: ".334", hr: 6, rbi: 28, pos: "CF" }, { name: "T. Becton", hand: "R", avg: ".298", hr: 3, rbi: 14, pos: "SS" }],
+      1:  [{ name: "D. Crews", hand: "R", avg: ".402", hr: 12, rbi: 42, pos: "OF" }, { name: "J. Jones", hand: "L", avg: ".315", hr: 5, rbi: 22, pos: "SS" }],
+      default: [{ name: "J. Davis", hand: "R", avg: ".305", hr: 7, rbi: 24, pos: "CF" }, { name: "M. Johnson", hand: "L", avg: ".278", hr: 3, rbi: 15, pos: "2B" }],
+    };
+    const pool = batterPools[game.id] || batterPools.default;
+    setLiveStateLocal({
+      pitcher: initGC.pitcher,
+      batter: { ...pool[0] },
+      batterIdx: 0,
+      count: { balls: 2, strikes: 1, outs: game.outs ?? 1 },
+      atBatPitches: [
+        { num: 1, type: "Fastball",  speed: 91, result: "Ball",            x: 38, y: 72 },
+        { num: 2, type: "Curveball", speed: 74, result: "Strike (called)", x: 55, y: 48 },
+        { num: 3, type: "Changeup",  speed: 82, result: "Ball",            x: 22, y: 55 },
+      ],
+      pitchLog: [
+        { inn: game.inning ?? "T7", num: 87, type: "Fastball",  speed: 93, result: "Ball",             x: 38, y: 72 },
+        { inn: game.inning ?? "T7", num: 86, type: "Curveball", speed: 75, result: "Strike (called)",  x: 55, y: 48 },
+        { inn: "T6", num: 84, type: "Fastball", speed: 94, result: "Strike (swinging)", x: 50, y: 52 },
+      ],
+      awayScore: game.away.score ?? 0,
+      homeScore: game.home.score ?? 0,
+      awayRuns: [0,2,0,0,1,0,1,null,null],
+      homeRuns: [0,0,1,0,2,0,null,null,null],
+      inning: game.inning ?? "T7",
+      runners: { "1B": null, "2B": null, "3B": null },
+      pbp: [{ inn: "TOP 7TH", plays: [{ icon: "⚾", iconBg: "#1e2e4a", text: "Game in progress.", score: null }] }],
+      awayBatters: [
+        { name: "J. Rodriguez", pos: "CF", ab: 3, r: 1, h: 2, rbi: 1, bb: 0, k: 0, avg: ".312" },
+        { name: "M. Torres",    pos: "SS", ab: 3, r: 1, h: 1, rbi: 0, bb: 1, k: 1, avg: ".287" },
+        { name: "D. Johnson",   pos: "LF", ab: 2, r: 1, h: 1, rbi: 2, bb: 1, k: 0, avg: ".334" },
+      ],
+      homeBatters: [
+        { name: "B. Thompson",  pos: "CF", ab: 3, r: 1, h: 2, rbi: 0, bb: 0, k: 0, avg: ".321" },
+        { name: "S. Anderson",  pos: "2B", ab: 3, r: 0, h: 1, rbi: 1, bb: 0, k: 1, avg: ".305" },
+        { name: "L. Jackson",   pos: "DH", ab: 3, r: 1, h: 1, rbi: 2, bb: 1, k: 0, avg: ".289" },
+      ],
+    });
+  }, []); // eslint-disable-line
+
+  // Guard — after all hooks
   if (!game || !game.away || !game.home) return null;
 
   const gdTabs = game.status === "live"
@@ -2317,72 +2369,23 @@ const GameDetailScreen = ({ game, onClose, favs, toggleFav, onPlayerSelect, onTe
     { type: "Cutter",    speed: 88, result: "Strike (called)",  x: 58, y: 44 },
   ];
 
-  // ── Live state — rehydrates from global store so state persists when navigating away ──
-  const [liveState, setLiveStateLocal] = useState(() => savedLiveState ?? {
-    pitcher:      initGC.pitcher,
-    batter:       { ...pool[0], hand: pool[0].hand },
-    batterIdx:    0,
-    count:        { balls: 2, strikes: 1, outs: game.outs ?? 1 },
-    atBatPitches: [
-      { num: 1, type: "Fastball",  speed: 91, result: "Ball",            x: 38, y: 72 },
-      { num: 2, type: "Curveball", speed: 74, result: "Strike (called)", x: 55, y: 48 },
-      { num: 3, type: "Changeup",  speed: 82, result: "Ball",            x: 22, y: 55 },
-    ],
-    pitchLog: [
-      { inn: game.inning ?? "T7", num: 87, type: "Fastball",  speed: 93, result: "Ball",             x: 38, y: 72 },
-      { inn: game.inning ?? "T7", num: 86, type: "Curveball", speed: 75, result: "Strike (called)",  x: 55, y: 48 },
-      { inn: game.inning ?? "T7", num: 85, type: "Changeup",  speed: 83, result: "Ball",             x: 22, y: 55 },
-      { inn: "T6",                num: 84, type: "Fastball",  speed: 94, result: "Strike (swinging)",x: 50, y: 52 },
-      { inn: "T6",                num: 83, type: "Slider",    speed: 86, result: "Foul",             x: 60, y: 40 },
-      { inn: "T6",                num: 82, type: "Fastball",  speed: 92, result: "In play (out)",    x: 48, y: 58 },
-    ],
-    awayScore:  game.away.score ?? 0,
-    homeScore:  game.home.score ?? 0,
-    awayRuns:   [0,2,0,0,1,0,1,null,null],
-    homeRuns:   [0,0,1,0,2,0,null,null,null],
-    inning:     game.inning ?? "T7",
-    runners: { "1B": "B. Thompson", "2B": "O. Clark", "3B": null },
-    pbp: [
-      { inn: "TOP 7TH", plays: [
-        { icon: "⚾", iconBg: "#1e2e4a", text: "P. Garcia grounds out to second base.", score: null },
-        { icon: "💥", iconBg: "#2d0a0e", text: "D. Johnson doubles to left center. Rodriguez scores!", score: `${game.away.abbr} ${game.away.score ?? 0} · ${game.home.abbr} ${game.home.score ?? 0}` },
-      ]},
-      { inn: "BOT 6TH", plays: [
-        { icon: "⚾", iconBg: "#1e2e4a", text: "O. Clark grounds out to short.", score: null },
-        { icon: "💨", iconBg: "#1e2e4a", text: "F. Lewis strikes out swinging.", score: null },
-      ]},
-    ],
-    awayBatters: [
-      { name: "J. Rodriguez", pos: "CF", ab: 3, r: 1, h: 2, rbi: 1, bb: 0, k: 0, avg: ".312" },
-      { name: "M. Torres",    pos: "SS", ab: 3, r: 1, h: 1, rbi: 0, bb: 1, k: 1, avg: ".287" },
-      { name: "C. Williams",  pos: "1B", ab: 3, r: 0, h: 0, rbi: 0, bb: 0, k: 2, avg: ".301" },
-      { name: "D. Johnson",   pos: "LF", ab: 2, r: 1, h: 1, rbi: 2, bb: 1, k: 0, avg: ".334" },
-      { name: "T. Martinez",  pos: "3B", ab: 3, r: 1, h: 2, rbi: 1, bb: 0, k: 0, avg: ".298" },
-    ],
-    homeBatters: [
-      { name: "B. Thompson",  pos: "CF", ab: 3, r: 1, h: 2, rbi: 0, bb: 0, k: 0, avg: ".321" },
-      { name: "S. Anderson",  pos: "2B", ab: 3, r: 0, h: 1, rbi: 1, bb: 0, k: 1, avg: ".305" },
-      { name: "L. Jackson",   pos: "DH", ab: 3, r: 1, h: 1, rbi: 2, bb: 1, k: 0, avg: ".289" },
-      { name: "N. White",     pos: "1B", ab: 2, r: 1, h: 1, rbi: 0, bb: 1, k: 1, avg: ".312" },
-      { name: "E. Harris",    pos: "RF", ab: 3, r: 0, h: 0, rbi: 0, bb: 0, k: 2, avg: ".254" },
-    ],
-  });
 
-  const pitcher = liveState.pitcher;
-  const batter  = liveState.batter;
-  const count   = liveState.count;
-  const atBatPitches = liveState.atBatPitches;
-  const pitchLog     = liveState.pitchLog;
-  const awayBatters  = liveState.awayBatters;
-  const homeBatters  = liveState.homeBatters;
-  const pbp          = liveState.pbp;
-  const awayScore    = liveState.awayScore;
-  const homeScore    = liveState.homeScore;
+
+  const pitcher = liveState?.pitcher ?? initGC.pitcher;
+  const batter  = liveState?.batter  ?? { ...pool[0] };
+  const count   = liveState?.count   ?? { balls: 0, strikes: 0, outs: 0 };
+  const atBatPitches = liveState?.atBatPitches ?? [];
+  const pitchLog     = liveState?.pitchLog     ?? [];
+  const awayBatters  = liveState?.awayBatters  ?? [];
+  const homeBatters  = liveState?.homeBatters  ?? [];
+  const pbp          = liveState?.pbp          ?? [];
+  const awayScore    = liveState?.awayScore    ?? game.away.score ?? 0;
+  const homeScore    = liveState?.homeScore    ?? game.home.score ?? 0;
 
   // Wrapper that keeps local and global in sync
   const setLiveState = (updater) => {
     setLiveStateLocal(prev => {
-      const next = typeof updater === "function" ? updater(prev) : updater;
+      const next = typeof updater === "function" ? updater(prev ?? {}) : updater;
       onLiveStateChange && onLiveStateChange(next);
       return next;
     });
